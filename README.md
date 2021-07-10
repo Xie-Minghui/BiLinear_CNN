@@ -1,0 +1,2 @@
+# BiLinear_CNN
+使用华为的mindspore实现BiLinear_CNN
