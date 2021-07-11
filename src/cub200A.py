@@ -23,9 +23,10 @@ import mindspore.dataset.vision.c_transforms as CV
 import mindspore.dataset.vision.py_transforms as PY
 
 import numpy as np
+import mindspore.dataset as ds
 import PIL.Image
 from src.config import config
-
+ds.config.set_num_parallel_workers(1)
 
 class ModelDataProcessor():
 
@@ -44,7 +45,8 @@ class ModelDataProcessor():
         #     PY.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
         # ])
 
-        self.train_transforms =P.Compose([
+        self.train_transforms = P.Compose([
+                PY.ToPIL(),
                 PY.Resize(size=448),  # Let smaller edge match
                 PY.RandomHorizontalFlip(),
                 PY.RandomCrop(size=448),
@@ -110,37 +112,57 @@ class ModelDataProcessor():
         
         return train_data, train_labels, test_data, test_labels 
 
-    def get_batch(self, x, y, is_train=True):
-        assert len(x) == len(y) , "error shape!"
+    # def get_batch(self, x, y, is_train=True):
+    #     assert len(x) == len(y) , "error shape!"
 
-        n_batches = int(len(x) / config.batch_size)  # 统计共几个完整的batch
-        # print(x.shape)
-        for i in range(n_batches - 1):
-            x_batch = x[i*config.batch_size: (i + 1)*config.batch_size]
-            y_batch = y[i*config.batch_size: (i + 1)*config.batch_size]
-            print(y_batch)
-            x_batch = self.trans(x_batch, is_train)
+    #     n_batches = int(len(x) / config.batch_size)  # 统计共几个完整的batch
+    #     # print(x.shape)
+    #     for i in range(n_batches - 1):
+    #         x_batch = x[i*config.batch_size: (i + 1)*config.batch_size]
+    #         y_batch = y[i*config.batch_size: (i + 1)*config.batch_size]
+    #         print(y_batch)
+    #         x_batch = self.trans(x_batch, is_train)
 
-            # lengths = [len(seq) for seq in x_batch]
-            # max_length = max(lengths)
-            # for i in range(len(x_batch)):
-            #     x_batch[i] = x_batch[i] + [0 for j in range(max_length-len(x_batch[i]))]
+    #         # lengths = [len(seq) for seq in x_batch]
+    #         # max_length = max(lengths)
+    #         # for i in range(len(x_batch)):
+    #         #     x_batch[i] = x_batch[i] + [0 for j in range(max_length-len(x_batch[i]))]
 
-            yield x_batch, y_batch
+    #         yield x_batch, y_batch
+    
+    def make_batch(self, X, y, is_train=True):
+        # images = []
+        # for image in X:
+        #     image = PIL.Image.fromarray(image)
+        #     images.append(image)
+        # X = images
+        dataset_generator = IterDatasetGenerator(X, y)
+        
+        dataset = ds.GeneratorDataset(dataset_generator, ["image", "label"], shuffle=False)
+        dataset1 = dataset.map(operations=self.train_transforms, input_columns=["image"])
+        for data in dataset1.create_dict_iterator():
+            print(data["image"], data["label"])
 
-    def trans(self, x_batch, is_train):
-        images = []
-        for image in x_batch:
-            print(image.shape)
-            image = PIL.Image.fromarray(image)
-            print(type(image))
-            if is_train:
-                image = self.train_transforms(image)  # 有bug
-                # image.map(self.train_transforms, image)
-            else:
-                image = self.test_transforms(image)
-            images.append(image)
-        return images
+
+class IterDatasetGenerator:
+    def __init__(self, X, y):
+        self.__index = 0
+        self.__data = X
+        self.__label = y
+
+    def __next__(self):
+        if self.__index >= len(self.__data):
+            raise StopIteration
+        else:
+            item = (self.__data[self.__index], self.__label[self.__index])
+            self.__index += 1
+            return item
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+        return len(self.__data)
 
 
 if __name__ == "__main__":

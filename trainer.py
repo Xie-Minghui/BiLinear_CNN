@@ -21,21 +21,28 @@ import mindspore.dataset.vision.py_transforms as PY
 import mindspore.nn as nn
 import mindspore
 
+import os, sys
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) # __file__获取执行文件相对路径，整行为取上一级目录
+sys.path.append(BASE_DIR)
+
 from src.config import config
-from src.bilinear_cnn import BCNN
-from src.cub200 import ModelDataProcessor 
+# from src.bilinear_cnn import BCNN
+from src.dpcnn import DPCNN
+from src.cub200A import ModelDataProcessor
 
 ms.common.set_seed(0)
+# from mindspore import context
+# context.set_context(mode=context.GRAPH_MODE, device_target="GPU")
 
 class Trainer:
-    def __init__(self, options, path):
+    def __init__(self):
         """Prepare the network, criterion, solver, and data.
         Args:
             options, dict: Hyperparameters.
         """
         print('Prepare the network and data.')
         # Network.
-        self.model = BCNN()
+        self.model = DPCNN()
         self.data_processor = ModelDataProcessor()
         # Criterion.
         self.criterion = nn.SoftmaxCrossEntropyWithLogits(sparse=True,reduction='sum')
@@ -57,22 +64,24 @@ class Trainer:
 
         loss_total = 0.0
         correct_total = 0
-
-        for x_batch, y_batch in self.data_processor.get_batch(self.X_train, self.y_train, is_train=True):  # self.data_processor.
-            x_batch = Tensor(x_batch, mindspore.int32)
-            y_batch = Tensor(y_batch, mindspore.int32)
+        print("haha")
+        self.data_processor.make_batch(self.X_train, self.y_train)  
+        # for x_batch, y_batch in self.data_processor.get_batch(self.X_train, self.y_train, is_train=True):  # self.data_processor.
+        #     x_batch = Tensor(x_batch, mindspore.int32)
+        #     y_batch = Tensor(y_batch, mindspore.int32)
+        #     print(x_batch)
  
-            loss = train_network(x_batch, y_batch)
-            loss_total += float(loss.asnumpy())
-            predict = self.model(x_batch).asnumpy().argmax(1)
-            correct = 0
-            for i, j in zip(predict, y_batch):
-                correct += (i==j.asnumpy())
-            correct_total += correct
+        #     loss = train_network(x_batch, y_batch)
+        #     loss_total += float(loss.asnumpy())
+        #     predict = self.model(x_batch).asnumpy().argmax(1)
+        #     correct = 0
+        #     for i, j in zip(predict, y_batch):
+        #         correct += (i==j.asnumpy())
+        #     correct_total += correct
 
-        loss_total_final = loss_total
-        accuracy = correct_total / len(self.X_train)
-        print("train loss: {}, train accuracy: {}".format(loss_total_final, accuracy))
+        # loss_total_final = loss_total
+        # accuracy = correct_total / len(self.X_train)
+        # print("train loss: {}, train accuracy: {}".format(loss_total_final, accuracy))
 
 
 if __name__ == "__main__":
