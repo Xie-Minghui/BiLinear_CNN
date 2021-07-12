@@ -1,19 +1,3 @@
-# -*- coding: utf-8 -*
-"""This module is served as torchvision.datasets to load CUB200-2011.
-CUB200-2011 dataset has 11,788 images of 200 bird species. The project page
-is as follows.
-    http://www.vision.caltech.edu/visipedia/CUB-200-2011.html
-- Images are contained in the directory data/cub200/raw/images/,
-  with 200 subdirectories.
-- Format of images.txt: <image_id> <image_name>
-- Format of train_test_split.txt: <image_id> <is_training_image>
-- Format of classes.txt: <class_id> <class_name>
-- Format of iamge_class_labels.txt: <image_id> <class_id>
-This file is modified from:
-    https://github.com/vishwakftw/vision.
-"""
-
-
 import os
 import pickle
 import re
@@ -46,7 +30,7 @@ class ModelDataProcessor():
         # ])
 
         self.train_transforms = P.Compose([
-                PY.ToPIL(),
+                PY.ToPIL(),  # 需要在这里将输入转化为image形式，不知道为什么在外面转换就失败了
                 PY.Resize(size=448),  # Let smaller edge match
                 PY.RandomHorizontalFlip(),
                 PY.RandomCrop(size=448),
@@ -111,24 +95,6 @@ class ModelDataProcessor():
         #         and len(test_labels) == 5794)
         
         return train_data, train_labels, test_data, test_labels 
-
-    # def get_batch(self, x, y, is_train=True):
-    #     assert len(x) == len(y) , "error shape!"
-
-    #     n_batches = int(len(x) / config.batch_size)  # 统计共几个完整的batch
-    #     # print(x.shape)
-    #     for i in range(n_batches - 1):
-    #         x_batch = x[i*config.batch_size: (i + 1)*config.batch_size]
-    #         y_batch = y[i*config.batch_size: (i + 1)*config.batch_size]
-    #         print(y_batch)
-    #         x_batch = self.trans(x_batch, is_train)
-
-    #         # lengths = [len(seq) for seq in x_batch]
-    #         # max_length = max(lengths)
-    #         # for i in range(len(x_batch)):
-    #         #     x_batch[i] = x_batch[i] + [0 for j in range(max_length-len(x_batch[i]))]
-
-    #         yield x_batch, y_batch
     
     def make_batch(self, X, y, is_train=True):
         # images = []
@@ -139,9 +105,14 @@ class ModelDataProcessor():
         dataset_generator = IterDatasetGenerator(X, y)
         
         dataset = ds.GeneratorDataset(dataset_generator, ["image", "label"], shuffle=False)
-        dataset1 = dataset.map(operations=self.train_transforms, input_columns=["image"])
-        for data in dataset1.create_dict_iterator():
-            print(data["image"], data["label"])
+        if is_train:
+            dataset1 = dataset.map(operations=self.train_transforms, input_columns=["image"])
+        else:
+             dataset1 = dataset.map(operations=self.test_transforms, input_columns=["image"])
+        # for data in dataset1.create_dict_iterator():
+        #     print(data["image"], data["label"])
+        dataset1 = dataset1.batch(batch_size=config.batch_size, drop_remainder=True)
+        return dataset1
 
 
 class IterDatasetGenerator:
