@@ -1,45 +1,63 @@
+# Bilinear CNN 模型
+
 import mindspore
 import mindspore.nn as nn
 import mindspore.ops as ops
-from src.config import config
+from .vgg16 import Vgg
+from mindspore import load_checkpoint, load_param_into_net
 
-class BCNN(nn.Cell):
+vgg16_ckpt = r'./vgg16_ascend_v120_imagenet2012_official_cv_bs32_acc73.ckpt'
 
+
+class BiCNN(nn.Cell):
     def __init__(self):
-        """Declare all needed layers."""
         super().__init__()
-        # Convolution and pooling layers of VGG-16.
-        self.features = torchvision.models.vgg16(pretrained=True).features
-        self.features = torch.nn.Sequential(*list(self.features.children())
-                                            [:-1])  # Remove pool5.
-        # Linear classifier.
-        self.fc = nn.nn.Dense(512**2, 200)
 
-        # Freeze all previous layers.
-        for param in self.features.parameters():
-            param.requires_grad = False
-        # Initialize the fc layers.
-        # torch.nn.init.kaiming_normal(self.fc.weight.data)
-        # if self.fc.bias is not None:
-        #     torch.nn.init.constant(self.fc.bias.data, val=0)
+        vgg16 = Vgg([64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
+                    num_classes=1000, batch_norm=False)
 
-    def forward(self, X):
-        """Forward pass of the network.
-        Args:
-            X, torch.autograd.Variable of shape N*3*448*448.
-        Returns:
-            Score, torch.autograd.Variable of shape N*200.
+        param_dict = load_checkpoint(vgg16_ckpt)
+        load_param_into_net(vgg16, param_dict)
+
+        self.sub_vgg16 = vgg16.layers[:-1]
+        self.fc = nn.Dense(512 ** 2, 200)
+
+        # 工具函数
+        self.bmm = mindspore.ops.BatchMatMul()
+        self.transpose = mindspore.ops.Transpose()
+        self.sqrt = ops.Sqrt()
+        self.l2_normalize = ops.L2Normalize()
+
+    def construct(self, x):
         """
-        N = X.shape[0]
-        assert X.shape== (N, 3, 448, 448)
-        X = self.features(X)
-        assert X.shape == (N, 512, 28, 28)
-        X = X.view(N, 512, 28**2)
-        X = torch.bmm(X, torch.transpose(X, 1, 2)) / (28**2)  # Bilinear
-        assert X.size() == (N, 512, 512)
-        X = X.view(N, 512**2)
-        X = ops.Sqrt()(X + 1e-5)
-        X = torch.nn.functional.normalize(X)
-        X = self.fc(X)
-        assert X.size() == (N, 200)
-        return X
+        Args:
+            x.shape: N*3*448*448
+        Returns:
+            Score.shape: N*200
+        """
+        N = x.shape[0]
+        assert x.shape == (N, 3, 448, 448)
+        x = self.sub_vgg16(x)
+        assert x.shape == (N, 512, 28, 28)
+        x = x.view((N, 512, 28 ** 2))
+        x = self.bmm(x, self.transpose(x, (0, 2, 1))) / (28 ** 2)
+        assert x.shape == (N, 512, 512)
+        x = x.view(N, 512 ** 2)
+        x = self.sqrt(x + 1e-5)
+        x = self.l2_normalize(x)
+        x = self.fc(x)
+        assert x.shape == (N, 200)
+        return x
+
+
+if __name__ == '__main__':
+    # model:
+    # input_size:(N, 3, 448, 448)
+    # output_size:(N, 200)
+    model = BiCNN()
+    print(model.sub_vgg16[1].parameters_dict())
+
+    # import numpy as np
+    # x = Tensor(np.random.sample((5, 3, 448, 448)), ms.float32)
+    # y = model(x)
+    # print(y.shape)

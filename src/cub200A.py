@@ -111,6 +111,7 @@ class ModelDataProcessor():
              dataset1 = dataset.map(operations=self.test_transforms, input_columns=["image"])
         # for data in dataset1.create_dict_iterator():
         #     print(data["image"], data["label"])
+        dataset1 = dataset1.shuffle(5000)
         dataset1 = dataset1.batch(batch_size=config.batch_size, drop_remainder=True)
         return dataset1
 
