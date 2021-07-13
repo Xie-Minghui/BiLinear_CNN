@@ -50,7 +50,8 @@ class Trainer:
         self.data_processor = ModelDataProcessor()
         # Criterion.
         self.criterion = nn.SoftmaxCrossEntropyWithLogits(sparse=True,reduction='sum')
-        self.optimizer = nn.Adam(self.model.trainable_params(), learning_rate=config.lr)
+        # self.optimizer = nn.Adam(self.model.trainable_params(), learning_rate=config.lr)
+        self.optimizer = nn.Adam(self.model.fc.trainable_params(), learning_rate=config.lr)
         self.X_train, self.y_train, self.X_test, self.y_test = self.data_processor.get_data()
 
     def controller(self):
@@ -72,9 +73,9 @@ class Trainer:
         dataset_train = self.data_processor.make_batch(self.X_train, self.y_train)
         cnt = 0
         for data in dataset_train.create_dict_iterator():
-            if cnt > 256:
-                break
-            cnt += 1
+            # if cnt > 256:
+            #     break
+            # cnt += 1
             x_batch = Tensor(data['image'], mindspore.float32)
             y_batch = Tensor(data['label'], mindspore.int32)
             print(x_batch.shape)
@@ -87,7 +88,7 @@ class Trainer:
             correct = 0
             for i, j in zip(prediction, y_batch):
                 print(i,j)
-                correct += ((i+1)==j.asnumpy())
+                correct += (i==j.asnumpy())
             correct_total += correct
             # print(correct)
             loss_total_final = loss_total
@@ -100,9 +101,9 @@ class Trainer:
         dataset_test = self.data_processor.make_batch(self.X_test, self.y_test)
         cnt = 0
         for data in dataset_test.create_dict_iterator():
-            if cnt > 64:
-                break
-            cnt += 1
+            # if cnt > 64:
+            #     break
+            # cnt += 1
             x_batch = Tensor(data['image'], mindspore.float32)
             y_batch = Tensor(data['label'], mindspore.int32)
             # score = self.model(x_batch)
@@ -110,8 +111,8 @@ class Trainer:
             # prediction = P.Argmax(1, output_type=mindspore.int32)(score.data)
             correct = 0
             for i, j in zip(prediction, y_batch):
-                # print(i,j)
-                correct += ((i+1)==j.asnumpy())
+                print(i,j)
+                correct += (i==j.asnumpy())
             correct_total += correct
             accuracy = correct_total / len(self.X_train)
         print("test accuracy: {}".format(accuracy))
