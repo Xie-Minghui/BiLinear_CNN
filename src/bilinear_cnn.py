@@ -16,8 +16,8 @@ class BiCNN(nn.Cell):
         vgg16 = Vgg([64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
                     num_classes=1000, batch_norm=False)
 
-        param_dict = load_checkpoint(vgg16_ckpt)
-        load_param_into_net(vgg16, param_dict)
+        # param_dict = load_checkpoint(vgg16_ckpt)
+        # load_param_into_net(vgg16, param_dict)
 
         self.sub_vgg16 = vgg16.layers[:-1]
         self.fc = nn.Dense(512 ** 2, 200)
@@ -37,15 +37,24 @@ class BiCNN(nn.Cell):
             Score.shape: N*200
         """
         N = x.shape[0]
+        print(x)
+        print("vgg")
         # assert x.shape == (N, 3, 448, 448)
         x = self.sub_vgg16(x)
+        print(x)
         # assert x.shape == (N, 512, 28, 28)
         x = self.relu(x)
         x = x.view((N, 512, 28 ** 2))
+        print("relu")
+        print(x)
         x = self.bmm(x, self.transpose(x, (0, 2, 1))) / (28 ** 2)
         # assert x.shape == (N, 512, 512)
         x = x.view(N, 512 ** 2)
+        print("mm")
+        print(x)
         x = self.sqrt(x + 1e-5)
+        print("sqrt")
+        print(x)
         x = self.l2_normalize(x)
         x = self.fc(x)
         # assert x.shape == (N, 200)
