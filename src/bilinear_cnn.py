@@ -27,6 +27,7 @@ class BiCNN(nn.Cell):
         self.transpose = mindspore.ops.Transpose()
         self.sqrt = ops.Sqrt()
         self.l2_normalize = ops.L2Normalize()
+        self.relu = nn.ReLU()
 
     def construct(self, x):
         """
@@ -39,6 +40,7 @@ class BiCNN(nn.Cell):
         assert x.shape == (N, 3, 448, 448)
         x = self.sub_vgg16(x)
         assert x.shape == (N, 512, 28, 28)
+        x = self.relu(x)
         x = x.view((N, 512, 28 ** 2))
         x = self.bmm(x, self.transpose(x, (0, 2, 1))) / (28 ** 2)
         assert x.shape == (N, 512, 512)

@@ -30,6 +30,7 @@ sys.path.append(BASE_DIR)
 from src.config import config
 # from src.bilinear_cnn import BCNN
 # from src.dpcnn import DPCNN
+# from src.BCNN import BCNN
 from src.bilinear_cnn import BiCNN
 from src.cub200A import ModelDataProcessor
 
@@ -45,7 +46,7 @@ class Trainer:
         """
         print('Prepare the network and data.')
         # Network.
-        self.model = BiCNN()
+        self.model = BiCNN()  # image_size=[448, 448]
         self.data_processor = ModelDataProcessor()
         # Criterion.
         self.criterion = nn.SoftmaxCrossEntropyWithLogits(sparse=True,reduction='sum')
@@ -69,7 +70,11 @@ class Trainer:
         loss_total = 0.0
         correct_total = 0
         dataset_train = self.data_processor.make_batch(self.X_train, self.y_train)
+        cnt = 0
         for data in dataset_train.create_dict_iterator():
+            if cnt > 256:
+                break
+            cnt += 1
             x_batch = Tensor(data['image'], mindspore.float32)
             y_batch = Tensor(data['label'], mindspore.int32)
             print(x_batch.shape)
@@ -77,7 +82,7 @@ class Trainer:
             loss_total += float(loss.asnumpy())
             score = self.model(x_batch).asnumpy()
             prediction = score.argmax(1)
-            print(score)
+            # print(score)
             # prediction = P.Argmax(1, output_type=mindspore.int32)(score.data)
             correct = 0
             for i, j in zip(prediction, y_batch):
@@ -93,7 +98,11 @@ class Trainer:
 
         correct_total = 0
         dataset_test = self.data_processor.make_batch(self.X_test, self.y_test)
+        cnt = 0
         for data in dataset_test.create_dict_iterator():
+            if cnt > 64:
+                break
+            cnt += 1
             x_batch = Tensor(data['image'], mindspore.float32)
             y_batch = Tensor(data['label'], mindspore.int32)
             # score = self.model(x_batch)

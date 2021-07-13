@@ -11,6 +11,6 @@ class Config:
         self.vocab_size = 1000
         self.num_filter = 32
         self.num_rel = 2
-        self.batch_size = 1
+        self.batch_size = 4
 
 config = Config()
