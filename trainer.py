@@ -48,17 +48,24 @@ class Trainer:
         print('Prepare the network and data.')
         # Network.
         self.model = BiCNN()  # image_size=[448, 448]
+        if config.use_pretrained:
+            print("continue training...")
+            print(config.path_continue)
+            params = load_checkpoint(config.path_continue)
+            load_param_into_net(self.model, params)
         self.data_processor = ModelDataProcessor()
         # Criterion.
         self.criterion = nn.SoftmaxCrossEntropyWithLogits(sparse=True,reduction='mean')
         # self.optimizer = nn.Adam(self.model.trainable_params(), learning_rate=config.lr)
-        self.optimizer = nn.Adam(self.model.fc.trainable_params(), learning_rate=config.lr)
+        # self.optimizer = nn.Adam(self.model.fc.trainable_params(), learning_rate=config.lr)
+        self.optimizer = nn.AdamWeightDecay(self.model.fc.trainable_params(), learning_rate=config.lr, weight_decay=1e-8)
         self.X_train, self.y_train, self.X_test, self.y_test = self.data_processor.get_data()
 
     def controller(self):
         print("finetune fc layer")
-        for epoch in range(config.epochs):
-            print("Epoch: {}".format(epoch))
+        self.acc_best = 0.0
+        for epoch in range(config.epoch_continue, config.epochs):
+            print("Epoch {} :".format(epoch))
             self.train(epoch)
             self.test(epoch)
 
@@ -100,7 +107,6 @@ class Trainer:
         correct_total = 0
         dataset_test = self.data_processor.make_batch(self.X_test, self.y_test)
         cnt = 0
-        acc_best = 0.0
         for data in dataset_test.create_dict_iterator():
             # if cnt > 64:
             #     break
@@ -118,11 +124,11 @@ class Trainer:
             accuracy = correct_total / len(self.X_test)
         print("test accuracy: {}".format(accuracy))
         # Save model onto disk.
-        if accuracy >= acc_best:
-            acc_best = accuracy
+        if accuracy >= self.acc_best:
+            self.acc_best = accuracy
             epoch_best = epoch + 1
-            save_checkpoint(self.train_network, os.path.join(config.path_fc+'vgg_16_epoch_{}_acc_{}.ckpt'.format(epoch_best, acc_best)))
-            print("best accuracy: {}".format(acc_best))
+            save_checkpoint(self.train_network, os.path.join(config.path_fc+'vgg_16_epoch_{}_acc_{}.ckpt'.format(epoch_best, self.acc_best)))
+            print("best accuracy: {}".format(self.acc_best))
 
 class Trainer_all:
     def __init__(self):
@@ -145,6 +151,7 @@ class Trainer_all:
 
     def controller(self):
         print("finetune all layer")
+        self.acc_best = 0.0
         for epoch in range(config.epochs):
             print("Epoch: {}".format(epoch))
             self.train(epoch)
@@ -189,7 +196,7 @@ class Trainer_all:
         correct_total = 0
         dataset_test = self.data_processor.make_batch(self.X_test, self.y_test)
         cnt = 0
-        acc_best = 0.0
+        
         for data in dataset_test.create_dict_iterator():
             # if cnt > 64:
             #     break
@@ -207,11 +214,11 @@ class Trainer_all:
             accuracy = correct_total / len(self.X_test)
         print("test accuracy: {}".format(accuracy))
         # Save model onto disk.
-        if accuracy >= acc_best:
-            acc_best = accuracy
+        if accuracy >= self.acc_best:
+            self.acc_best = accuracy
             epoch_best = epoch + 1
-            save_checkpoint(self.train_network, os.path.join(config.path_fc+'vgg_16_all_epoch_{}_acc_{}.ckpt'.format(epoch_best, acc_best)))
-            print("best accuracy: {}".format(acc_best))
+            save_checkpoint(self.train_network, os.path.join(config.path_fc+'vgg_16_all_epoch_{}_acc_{}.ckpt'.format(epoch_best, self.acc_best)))
+            print("best accuracy: {}".format(self.acc_best))
 
 
 if __name__ == "__main__":
