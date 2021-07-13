@@ -15,19 +15,6 @@ ds.config.set_num_parallel_workers(1)
 class ModelDataProcessor():
 
     def __init__(self):
-        # self.train_transforms =P.Compose([
-        #         CV.Resize(size=[448,448]),  # Let smaller edge match
-        #         PY.RandomHorizontalFlip(),
-        #         PY.RandomCrop(size=[448,448]),
-        #         PY.ToTensor(),
-        #         PY.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        #     ])
-        # self.test_transforms = P.Compose([
-        #     CV.Resize(size=[448,448]),
-        #     PY.CenterCrop(size=[448,448]),
-        #     PY.ToTensor(),
-        #     PY.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        # ])
 
         self.train_transforms = P.Compose([
                 PY.ToPIL(),  # 需要在这里将输入转化为image形式，不知道为什么在外面转换就失败了
@@ -38,6 +25,7 @@ class ModelDataProcessor():
                 PY.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
             ])
         self.test_transforms = P.Compose([
+            PY.ToPIL(),
             PY.Resize(size=448),
             PY.CenterCrop(size=448),
             PY.ToTensor(),

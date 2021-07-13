@@ -37,18 +37,18 @@ class BiCNN(nn.Cell):
             Score.shape: N*200
         """
         N = x.shape[0]
-        assert x.shape == (N, 3, 448, 448)
+        # assert x.shape == (N, 3, 448, 448)
         x = self.sub_vgg16(x)
-        assert x.shape == (N, 512, 28, 28)
+        # assert x.shape == (N, 512, 28, 28)
         x = self.relu(x)
         x = x.view((N, 512, 28 ** 2))
         x = self.bmm(x, self.transpose(x, (0, 2, 1))) / (28 ** 2)
-        assert x.shape == (N, 512, 512)
+        # assert x.shape == (N, 512, 512)
         x = x.view(N, 512 ** 2)
         x = self.sqrt(x + 1e-5)
         x = self.l2_normalize(x)
         x = self.fc(x)
-        assert x.shape == (N, 200)
+        # assert x.shape == (N, 200)
         return x
 
 
