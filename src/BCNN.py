@@ -58,7 +58,7 @@ class BCNN(nn.Cell):
         # Normalization.
         #out = self.sign(out)
         out = self.sqrt(self.abs(out) + 1e-5)
-        out = self.normalize(out)
+        # out = self.normalize(out)
 
         # Classification.
         out = self.fc(out)
