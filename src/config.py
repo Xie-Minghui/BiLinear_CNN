@@ -4,10 +4,11 @@ class Config:
         ):
         self.path_data = './data/'
         self.epochs = 128
-        self.batch_size = 64
+        self.batch_size = 32
 
         self.path_continue = './vgg_16_epoch_5_acc_0.5633413876423887.ckpt'
-        self.path_fc = './vgg_16_epoch_5_acc_0.5895754228512254.ckpt'
+        self.path_fc = './vgg_16_all_epoch_62_acc_0.6769071453227476.ckpt'
+        # self.path_fc = './vgg_16_epoch_16_acc_0.6161546427338627.ckpt'
         # self.path_model = './vgg_16_epoch_.ckpt'
         self.use_pretrained = False
         
@@ -19,7 +20,7 @@ class Config:
         self.train_all = True
 
         if self.train_all:
-            self.lr = 1e-2
+            self.lr = 1e-5
         else:
             self.lr = 1.0
 

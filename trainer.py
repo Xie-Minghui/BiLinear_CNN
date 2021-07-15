@@ -37,7 +37,7 @@ from src.cub200A import ModelDataProcessor
 
 ms.common.set_seed(0)
 from mindspore import context
-context.set_context(mode=context.PYNATIVE_MODE, device_target="GPU")  # GRAPH_MODE PYNATIVE_MODE
+context.set_context(mode=context.GRAPH_MODE, device_target="GPU")  # GRAPH_MODE PYNATIVE_MODE
 
 class Trainer:
     def __init__(self):
@@ -140,31 +140,32 @@ class Trainer_all:
         # Network.
         
         model = BiCNN()  
-        print("haha1")
+        # print("haha1")
         # print(model.sub_vgg16[1].parameters_dict())
-        print(next(model.sub_vgg16[0].get_parameters()).asnumpy())
+        # print(next(model.sub_vgg16[0].get_parameters()).asnumpy())
         params = load_checkpoint(config.path_fc)
         # print(params)
         load_param_into_net(model, params)
-        print("haha2")
+        # print("haha2")
         # print(model.sub_vgg16[1].parameters_dict())
-        print(next(model.sub_vgg16[0].get_parameters()).asnumpy())
+        # print(next(model.sub_vgg16[0].get_parameters()).asnumpy())
         self.model = model
-        print("haha3")
+        # print("haha3")
         # print(self.model.sub_vgg16[1].parameters_dict())
-        print(next(self.model.sub_vgg16[0].get_parameters()).asnumpy())
+        # print(next(self.model.sub_vgg16[0].get_parameters()).asnumpy())
         self.data_processor = ModelDataProcessor()
         # Criterion.
         self.criterion = nn.SoftmaxCrossEntropyWithLogits(sparse=True,reduction='mean')
         # self.optimizer = nn.Adam(self.model.trainable_params(), learning_rate=config.lr)
-        self.optimizer = nn.SGD(self.model.trainable_params(), learning_rate=config.lr)
+        # self.optimizer = nn.SGD(self.model.trainable_params(), learning_rate=config.lr)
+        self.optimizer = nn.Adam(self.model.trainable_params(), learning_rate=config.lr)
         self.X_train, self.y_train, self.X_test, self.y_test = self.data_processor.get_data()
 
     def controller(self):
         print("finetune all layer")
         self.acc_best = 0.0
         for epoch in range(config.epochs):
-            print("Epoch: {}".format(epoch))
+            print("Epoch {} : ".format(epoch))
             self.train(epoch)
             self.test(epoch)
 
@@ -189,13 +190,13 @@ class Trainer_all:
             loss = self.train_network(x_batch, y_batch)
             loss_total += float(loss.asnumpy())
             score = self.model(x_batch).asnumpy()
-            print(score)
+            # print(score)
             prediction = score.argmax(1)
             # print(score)
             # prediction = P.Argmax(1, output_type=mindspore.int32)(score.data)
             correct = 0
             for i, j in zip(prediction, y_batch):
-                print(i,j)
+                # print(i,j)
                 correct += (i==j.asnumpy())
             correct_total += correct
             loss_total_final = loss_total

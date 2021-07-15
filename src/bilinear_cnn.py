@@ -5,6 +5,7 @@ import mindspore.nn as nn
 import mindspore.ops as ops
 from .vgg16 import Vgg
 from mindspore import load_checkpoint, load_param_into_net
+from .config import config
 
 vgg16_ckpt = r'./vgg16_ascend_v120_imagenet2012_official_cv_bs32_acc73.ckpt'
 
@@ -16,8 +17,9 @@ class BiCNN(nn.Cell):
         vgg16 = Vgg([64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
                     num_classes=1000, batch_norm=False)
 
-        # param_dict = load_checkpoint(vgg16_ckpt)
-        # load_param_into_net(vgg16, param_dict)
+        if not config.train_all:
+            param_dict = load_checkpoint(vgg16_ckpt)
+            load_param_into_net(vgg16, param_dict)
 
         self.sub_vgg16 = vgg16.layers[:-1]
         self.fc = nn.Dense(512 ** 2, 200)
@@ -26,7 +28,7 @@ class BiCNN(nn.Cell):
         self.bmm = mindspore.ops.BatchMatMul()
         self.transpose = mindspore.ops.Transpose()
         self.sqrt = ops.Sqrt()
-        self.l2_normalize = ops.L2Normalize()
+        self.l2_normalize = ops.L2Normalize(epsilon=1e-12)
         self.relu = nn.ReLU()
 
     def construct(self, x):
@@ -37,24 +39,24 @@ class BiCNN(nn.Cell):
             Score.shape: N*200
         """
         N = x.shape[0]
-        print(x)
-        print("vgg")
+        # print(x)
+        # print("vgg")
         # assert x.shape == (N, 3, 448, 448)
         x = self.sub_vgg16(x)
-        print(x)
+        # print(x)
         # assert x.shape == (N, 512, 28, 28)
         x = self.relu(x)
         x = x.view((N, 512, 28 ** 2))
-        print("relu")
-        print(x)
+        # print("relu")
+        # print(x)
         x = self.bmm(x, self.transpose(x, (0, 2, 1))) / (28 ** 2)
         # assert x.shape == (N, 512, 512)
         x = x.view(N, 512 ** 2)
-        print("mm")
-        print(x)
+        # print("mm")
+        # print(x)
         x = self.sqrt(x + 1e-5)
-        print("sqrt")
-        print(x)
+        # print("sqrt")
+        # print(x)
         x = self.l2_normalize(x)
         x = self.fc(x)
         # assert x.shape == (N, 200)

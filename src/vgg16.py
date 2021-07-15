@@ -51,7 +51,7 @@ class Vgg(nn.Cell):
         >>>     num_classes=1000, batch_norm=False, batch_size=1)
     """
 
-    def __init__(self, base, num_classes=1000, batch_norm=False, phase="train", include_top=True):
+    def __init__(self, base, num_classes=1000, batch_norm=True, phase="train", include_top=True):
         super(Vgg, self).__init__()
         self.layers = _make_layer(base, batch_norm=batch_norm)
         self.include_top = include_top
